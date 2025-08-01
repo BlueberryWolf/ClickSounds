@@ -1,12 +1,14 @@
 #include "config.h"
 #include "audio_player.h"
 #include "input_monitor.h"
+#include "file_watcher.h"
 #include <iostream>
 #include <random>
 #include <unordered_map>
 #include <csignal>
 #include <cstring>
 #include <string>
+#include <chrono>
 
 #ifdef PLATFORM_WINDOWS
 #include <windows.h>
@@ -17,13 +19,53 @@ private:
     Config config_;
     std::unique_ptr<AudioPlayer> audioPlayer_;
     std::unique_ptr<InputMonitor> inputMonitor_;
+    std::unique_ptr<FileWatcher> fileWatcher_;
     std::unordered_map<int, int> keySoundMap_;
     std::unordered_set<int> pressedKeys_;
+    std::unordered_map<MouseButton, int> activeMouseSounds_; // Track active mouse sounds for fade-out
+    std::unordered_map<int, int> activeKeySounds_; // Track active keyboard sounds for fade-out (vkCode -> soundId)
+    int lastKeyPressed_ = -1; // Track the last key pressed for true randomization
+    int lastScrollTime_ = 0; // Track last scroll event time for debouncing
+    std::unordered_map<int, int> lastKeyPressTime_; // Track last press time for each key for debouncing
     std::mt19937 rng_;
     bool running_ = true;
     
 public:
     ClickSoundsApp() : rng_(std::random_device{}()) {}
+    
+private:
+    int getCurrentTimeMs() {
+#ifdef PLATFORM_WINDOWS
+        return GetTickCount();
+#else
+        auto now = std::chrono::steady_clock::now();
+        auto duration = now.time_since_epoch();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+#endif
+    }
+    
+    void onConfigChanged(const std::string& filepath) {
+        std::cout << "Config file changed, reloading..." << std::endl;
+        
+        if (config_.reload()) {
+            // Apply new config to audio player
+            audioPlayer_->setMaxConcurrentSounds(config_.audio.maxConcurrentSounds);
+            audioPlayer_->setMasterVolume(config_.audio.masterVolume);
+            audioPlayer_->setAudioEffects(config_.audio.effects);
+            
+            // Clear existing key sound mappings to force remapping with new sounds
+            keySoundMap_.clear();
+            
+            // Re-setup callbacks in case mouse/keyboard enabled states changed
+            setupCallbacks();
+            
+            std::cout << "Config hot reload completed successfully!" << std::endl;
+        } else {
+            std::cerr << "Failed to reload config file" << std::endl;
+        }
+    }
+    
+public:
     
     bool initialize() {
         config_ = Config::loadFromFile("config.json");
@@ -35,6 +77,8 @@ public:
         }
         
         audioPlayer_->setMaxConcurrentSounds(config_.audio.maxConcurrentSounds);
+        audioPlayer_->setMasterVolume(config_.audio.masterVolume);
+        audioPlayer_->setAudioEffects(config_.audio.effects);
         
         inputMonitor_ = InputMonitor::create();
         if (!inputMonitor_->initialize()) {
@@ -42,13 +86,23 @@ public:
             return false;
         }
         
+        // Initialize file watcher for config hot reloading
+        fileWatcher_ = std::make_unique<FileWatcher>();
+        if (!fileWatcher_->watchFile(config_.getFilePath(), [this](const std::string& filepath) {
+            onConfigChanged(filepath);
+        })) {
+            std::cerr << "Warning: Failed to start config file watcher. Hot reloading disabled.\n";
+        }
+        
         setupCallbacks();
         return true;
     }
     
     void setupCallbacks() {
+        inputMonitor_->clearCallbacks();
+
         if (config_.mouse.enabled) {
-            inputMonitor_->setMouseCallback([this](MouseButton button, KeyEvent event) {
+            inputMonitor_->setMouseCallback([this](MouseButton button, MouseEvent event) {
                 handleMouseEvent(button, event);
             });
         }
@@ -58,19 +112,75 @@ public:
                 handleKeyboardEvent(vkCode, event);
             });
         }
+        
+        // Set up regular audio updates for fade processing
+        inputMonitor_->setUpdateCallback([this]() {
+            audioPlayer_->update();
+        });
     }
     
-    void handleMouseEvent(MouseButton button, KeyEvent event) {
+    void handleMouseEvent(MouseButton button, MouseEvent event) {
         std::string soundFile;
+        bool shouldPlay = true;
         
-        if (button == MouseButton::LEFT) {
-            soundFile = (event == KeyEvent::DOWN) ? config_.mouse.leftDown : config_.mouse.leftUp;
-        } else if (button == MouseButton::RIGHT) {
-            soundFile = (event == KeyEvent::DOWN) ? config_.mouse.rightDown : config_.mouse.rightUp;
+        // Handle button events
+        if (event == MouseEvent::BUTTON_DOWN || event == MouseEvent::BUTTON_UP) {
+            // Check if fade-out is enabled and we have an active sound for this button
+            if (config_.mouse.enableFadeOut && event == MouseEvent::BUTTON_UP) {
+                auto it = activeMouseSounds_.find(button);
+                if (it != activeMouseSounds_.end()) {
+                    // Fade out the active sound instead of playing a new one
+                    audioPlayer_->fadeOutSound(it->second, config_.mouse.fadeOutDurationMs);
+                    activeMouseSounds_.erase(it);
+                    return; // Don't play the up sound
+                }
+            }
+            
+            // Determine which sound file to play
+            switch (button) {
+                case MouseButton::LEFT:
+                    soundFile = (event == MouseEvent::BUTTON_DOWN) ? config_.mouse.leftDown : config_.mouse.leftUp;
+                    break;
+                case MouseButton::RIGHT:
+                    soundFile = (event == MouseEvent::BUTTON_DOWN) ? config_.mouse.rightDown : config_.mouse.rightUp;
+                    break;
+                case MouseButton::MIDDLE:
+                    soundFile = (event == MouseEvent::BUTTON_DOWN) ? config_.mouse.middleDown : config_.mouse.middleUp;
+                    break;
+                case MouseButton::X1:
+                    if (!config_.mouse.enableSideButtons) shouldPlay = false;
+                    else soundFile = (event == MouseEvent::BUTTON_DOWN) ? config_.mouse.x1Down : config_.mouse.x1Up;
+                    break;
+                case MouseButton::X2:
+                    if (!config_.mouse.enableSideButtons) shouldPlay = false;
+                    else soundFile = (event == MouseEvent::BUTTON_DOWN) ? config_.mouse.x2Down : config_.mouse.x2Up;
+                    break;
+            }
+        }
+        // Handle scroll wheel events
+        else if (event == MouseEvent::WHEEL_UP || event == MouseEvent::WHEEL_DOWN) {
+            if (!config_.mouse.enableScrollWheel) {
+                shouldPlay = false;
+            } else {
+                // Check debounce timing
+                int currentTime = getCurrentTimeMs();
+                if (currentTime - lastScrollTime_ < config_.mouse.scrollWheelDebounceMs) {
+                    shouldPlay = false; // Too soon, skip this scroll event
+                } else {
+                    lastScrollTime_ = currentTime;
+                    soundFile = (event == MouseEvent::WHEEL_UP) ? config_.mouse.wheelUp : config_.mouse.wheelDown;
+                }
+            }
         }
         
-        if (!soundFile.empty()) {
-            audioPlayer_->playSound(soundFile, config_.audio.asyncPlayback);
+        // Play the sound if we have one and should play it
+        if (shouldPlay && !soundFile.empty()) {
+            int soundId = audioPlayer_->playSoundWithIdAndVolume(soundFile, config_.mouse.volume, config_.audio.asyncPlayback);
+            
+            // Track the sound ID for potential fade-out (only for button down events)
+            if (config_.mouse.enableFadeOut && event == MouseEvent::BUTTON_DOWN && soundId > 0) {
+                activeMouseSounds_[button] = soundId;
+            }
         }
     }
     
@@ -79,6 +189,15 @@ public:
         if (config_.keyboard.excludedKeys.count(vkCode)) return;
         
         if (event == KeyEvent::DOWN) {
+            // Check debounce timing first
+            int currentTime = getCurrentTimeMs();
+            auto lastTimeIt = lastKeyPressTime_.find(vkCode);
+            if (lastTimeIt != lastKeyPressTime_.end()) {
+                if (currentTime - lastTimeIt->second < config_.keyboard.keyRepeatDebounceMs) {
+                    return; // Too soon, skip this key press
+                }
+            }
+            
             // Check if key repeat should be disabled (global or per-key)
             bool shouldDisableRepeat = config_.keyboard.disableRepeat || 
                                      config_.keyboard.noRepeatKeys.count(vkCode);
@@ -87,15 +206,23 @@ public:
                 return; // Key is already pressed, ignore repeat
             }
             
+            // Update timing and pressed keys tracking
+            lastKeyPressTime_[vkCode] = currentTime;
             pressedKeys_.insert(vkCode);
             
             if (!config_.keyboard.sounds.empty()) {
                 int soundIndex;
 
                 if (config_.keyboard.totallyRandomKeypresses) {
-                    // Totally random: pick a completely random sound for every keypress
-                    std::uniform_int_distribution<int> dist(0, static_cast<int>(config_.keyboard.sounds.size()) - 1);
-                    soundIndex = dist(rng_);
+                    // True randomization: if switching to a different key, pick a new random sound
+                    // If pressing the same key repeatedly, keep using the same sound
+                    if (lastKeyPressed_ != vkCode) {
+                        // Switching keys - pick a new random sound
+                        std::uniform_int_distribution<int> dist(0, static_cast<int>(config_.keyboard.sounds.size()) - 1);
+                        keySoundMap_[vkCode] = dist(rng_);
+                        lastKeyPressed_ = vkCode;
+                    }
+                    soundIndex = keySoundMap_[vkCode];
                 } else {
                     // Normal random: get or assign random sound for this key (consistent per key)
                     if (keySoundMap_.find(vkCode) == keySoundMap_.end()) {
@@ -106,10 +233,27 @@ public:
                 }
 
                 const std::string& soundFile = config_.keyboard.sounds[soundIndex];
-                audioPlayer_->playSound(soundFile, config_.audio.asyncPlayback);
+                int soundId = audioPlayer_->playSoundWithIdAndVolume(soundFile, config_.keyboard.volume, config_.audio.asyncPlayback);
+                
+                // Track the sound ID for potential fade-out
+                if (config_.keyboard.enableFadeOut && soundId > 0) {
+                    activeKeySounds_[vkCode] = soundId;
+                }
             }
         } else if (event == KeyEvent::UP) {
             pressedKeys_.erase(vkCode);
+            
+            // Clean up timing data for released key to prevent memory buildup
+            lastKeyPressTime_.erase(vkCode);
+            
+            // Handle fade-out on key release
+            if (config_.keyboard.enableFadeOut) {
+                auto it = activeKeySounds_.find(vkCode);
+                if (it != activeKeySounds_.end()) {
+                    audioPlayer_->fadeOutSound(it->second, config_.keyboard.fadeOutDurationMs);
+                    activeKeySounds_.erase(it);
+                }
+            }
         }
     }
     
@@ -119,6 +263,9 @@ public:
     
     void stop() {
         running_ = false;
+        if (fileWatcher_) {
+            fileWatcher_->stopWatching();
+        }
         inputMonitor_->stopMonitoring();
         audioPlayer_->cleanup();
     }

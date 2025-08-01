@@ -2,23 +2,59 @@
     "mouse": {
         "enabled": true,
         "sounds_dir": "sounds/mouse",
+        "enable_scroll_wheel": false,
+        "enable_side_buttons": true,
+        "enable_fade_out": false,
+        "fade_out_duration_ms": 50,
+        "scroll_wheel_debounce_ms": 20,
+        "volume": 0.5,
         "sounds": {
             "left_down": "ClickDown.flac",
             "left_up": "ClickUp.flac",
             "right_down": "ClickDown2.flac",
-            "right_up": "ClickUp2.flac"
+            "right_up": "ClickUp2.flac",
+            "middle_down": "ClickDownM.flac",
+            "middle_up": "ClickUpM.flac",
+            "x1_down": "ClickDown.flac",
+            "x1_up": "ClickUp.flac",
+            "x2_down": "ClickDown2.flac",
+            "x2_up": "ClickUp2.flac",
+            "wheel_up": "ClickUp.flac",
+            "wheel_down": "ClickDown.flac"
         }
     },
     "keyboard": {
         "enabled": true,
         "sounds_dir": "sounds/keyboard",
         "random_sounds": true,
-        "totally_random_keypresses": false,
+        "totally_random_keypresses": true,
         "disable_repeat": false,
-        "no_repeat_keys": ["space", "enter", "lshift", "rshift", "lalt", "ralt", "w", "a", "s", "d"]
+        "enable_fade_out": true,
+        "fade_out_duration_ms": 250,
+        "key_repeat_debounce_ms": 50,
+        "volume": 1.0,
+        "no_repeat_keys": ["space", "enter", "lshift", "rshift", "lctrl", "rcrtl", "lalt", "ralt", "w", "a", "s", "d"]
     },
     "audio": {
         "async_playback": true,
-        "max_concurrent_sounds": 32
+        "max_concurrent_sounds": 32,
+        "effects": {
+            "enable_reverb": false,
+            "reverb_wetness": 0.15,
+            "reverb_room_size": 0.3,
+            "reverb_decay_time": 1.0,
+            "reverb_damping": 0.45,
+            "reverb_width": 1.0,
+            
+            "enable_echo": false,
+            "echo_delay": 0.2,
+            "echo_decay": 0.3,
+            "echo_taps": 2,
+            
+            "enable_spatializer": false,
+            "random_spatial_position": true,
+            "spatial_spread": 3.0,
+            "listener_distance": 1.5
+        }
     }
 }

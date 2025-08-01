@@ -12,7 +12,11 @@ project "ClickSounds"
         "src/**.h",
         "src/**.cpp",
         "third_party/nlohmann/json.hpp",
-        "third_party/miniaudio.h"
+        "third_party/miniaudio/miniaudio.h",
+        "third_party/miniaudio/ma_reverb_node.h",
+        "third_party/miniaudio/ma_reverb_node.c",
+        "third_party/miniaudio/verblib.h",
+        "third_party/ThomasMonkman/FileWatch.hpp"
     }
     
     includedirs {
