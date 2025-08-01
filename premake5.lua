@@ -28,10 +28,18 @@ project "ClickSounds"
         "third_party"
     }
     
-    postbuildcommands {
-        "{COPY} %{wks.location}/config.json %{cfg.targetdir}",
-        "{COPY} %{wks.location}/sounds %{cfg.targetdir}/sounds"
-    }
+    filter "system:windows"
+        postbuildcommands {
+            'xcopy /Y /E "%{wks.location}\\config.json" "%{cfg.targetdir}"',
+            'xcopy /Y /E "%{wks.location}\\sounds" "%{cfg.targetdir}\\sounds"'
+        }
+
+    filter "system:not windows"
+        postbuildcommands {
+            'cp %{wks.location}/config.json %{cfg.targetdir}',
+            'cp -r %{wks.location}/sounds %{cfg.targetdir}/sounds'
+        }
+
     
     filter "system:windows"
         links { "user32" }
