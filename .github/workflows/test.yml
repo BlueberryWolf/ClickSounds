@@ -1,0 +1,57 @@
+name: Test Build
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  test-build:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Install Premake5
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/premake/premake-core/releases/download/v5.0.0-beta7/premake-5.0.0-beta7-windows.zip" -OutFile "premake.zip"
+        Expand-Archive -Path "premake.zip" -DestinationPath "premake"
+        echo "${{ github.workspace }}\premake" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        
+    - name: Generate project files
+      run: premake5 vs2022
+      
+    - name: Build Debug
+      run: |
+        msbuild ClickSounds.sln -p:Configuration=Debug -p:Platform=x64 -m
+        
+    - name: Build Release
+      run: |
+        msbuild ClickSounds.sln -p:Configuration=Release -p:Platform=x64 -m
+        
+    - name: Verify builds
+      run: |
+        $debugExists = Test-Path "bin\Debug\ClickSounds.exe"
+        $releaseExists = Test-Path "bin\Release\ClickSounds.exe"
+        
+        if ($debugExists) {
+          Write-Host "✅ Debug build successful"
+        } else {
+          Write-Host "❌ Debug build failed"
+        }
+        
+        if ($releaseExists) {
+          Write-Host "✅ Release build successful"
+        } else {
+          Write-Host "❌ Release build failed"
+        }
+        
+        if (-not ($debugExists -and $releaseExists)) {
+          exit 1
+        }
+        
+        Write-Host "🎉 All builds successful!"

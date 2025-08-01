@@ -1,0 +1,145 @@
+name: Build ClickSounds
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  release:
+    types: [ created ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup MSVC
+      uses: microsoft/setup-msbuild@v2
+      
+    - name: Install Premake5
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/premake/premake-core/releases/download/v5.0.0-beta7/premake-5.0.0-beta7-windows.zip" -OutFile "premake.zip"
+        Expand-Archive -Path "premake.zip" -DestinationPath "premake"
+        echo "${{ github.workspace }}\premake" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        
+    - name: Generate project files
+      run: premake5 vs2022
+      
+    - name: Build Release
+      run: |
+        msbuild ClickSounds.sln -p:Configuration=Release -p:Platform=x64 -m
+        
+    - name: Verify build output
+      run: |
+        if (Test-Path "bin\Release\ClickSounds.exe") {
+          Write-Host "✅ Build successful - ClickSounds.exe found"
+          Get-ChildItem "bin\Release" -Recurse
+        } else {
+          Write-Host "❌ Build failed - ClickSounds.exe not found"
+          exit 1
+        }
+        
+    - name: Create release package
+      run: |
+        # Create release directory
+        New-Item -ItemType Directory -Path "release" -Force
+        
+        # Copy executable
+        Copy-Item "bin\Release\ClickSounds.exe" "release\"
+        
+        # Copy config file
+        Copy-Item "config.json" "release\"
+        
+        # Copy sounds directory
+        Copy-Item "sounds" "release\sounds" -Recurse
+        
+        # Copy license and readme
+        Copy-Item "LICENSE" "release\" -ErrorAction SilentlyContinue
+        Copy-Item "README.md" "release\"
+        
+        # Create kill script for convenience
+        @"
+        @echo off
+        taskkill /f /im ClickSounds.exe 2>nul
+        if %errorlevel% equ 0 (
+            echo ClickSounds stopped successfully
+        ) else (
+            echo ClickSounds was not running
+        )
+        pause
+        "@ | Out-File -FilePath "release\KillClickSounds.bat" -Encoding ascii
+        
+        # Show what we packaged
+        Write-Host "Release package contents:"
+        Get-ChildItem "release" -Recurse
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ClickSounds-Windows-x64
+        path: release/
+        retention-days: 30
+        
+    - name: Create release archive
+      if: github.event_name == 'release'
+      run: |
+        Compress-Archive -Path "release\*" -DestinationPath "ClickSounds-Windows-x64.zip"
+        
+    - name: Upload release asset
+      if: github.event_name == 'release'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ github.event.release.upload_url }}
+        asset_path: ./ClickSounds-Windows-x64.zip
+        asset_name: ClickSounds-Windows-x64.zip
+        asset_content_type: application/zip
+
+  build-windows-clang:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Clang
+      run: |
+        choco install llvm -y
+        echo "C:\Program Files\LLVM\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        
+    - name: Install Premake5
+      run: |
+        Invoke-WebRequest -Uri "https://github.com/premake/premake-core/releases/download/v5.0.0-beta2/premake-5.0.0-beta2-windows.zip" -OutFile "premake.zip"
+        Expand-Archive -Path "premake.zip" -DestinationPath "premake"
+        echo "${{ github.workspace }}\premake" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        
+    - name: Install Make
+      run: choco install make -y
+        
+    - name: Generate makefiles
+      run: premake5 gmake2
+      
+    - name: Build with Clang
+      run: |
+        make config=release_x64 CC=clang CXX="clang++ -D_ALLOW_COMPILER_AND_STL_VERSION_MISMATCH"
+        
+    - name: Verify build output
+      run: |
+        if (Test-Path "bin\Release\ClickSounds.exe") {
+          Write-Host "✅ Clang build successful - ClickSounds.exe found"
+          Get-ChildItem "bin\Release" -Recurse
+        } else {
+          Write-Host "❌ Clang build failed - ClickSounds.exe not found"
+          exit 1
+        }
+        
+    - name: Upload Clang build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: ClickSounds-Windows-x64-Clang
+        path: bin/Release/
+        retention-days: 30
