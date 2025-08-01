@@ -1,6 +1,6 @@
 # ClickSounds
 
-Yeah, it's exactly what it sounds like. Makes your keyboard and mouse clicks sound.. clickier.
+It's exactly what it sounds like. Makes your keyboard and mouse clicks sound.. clickier.
 
 ## What it does
 
@@ -60,7 +60,7 @@ Currently using FLAC files because they're small and don't sound terrible.
 
 ## Performance
 
-This thing is actually fast. Uses Windows low-level hooks for input monitoring (no polling nonsense) and async audio playback so sounds don't block your typing. Is configured by default to handle 32 concurrent sounds without breaking a sweat.
+This thing is actually fast (unlike the older AHK script by [@Camera4040](https://github.com/camera4040)). Uses Windows low-level hooks for input monitoring (no polling nonsense) and async audio playback so sounds don't block your typing. It is configured by default to handle 32 concurrent sounds without breaking a sweat.
 
 Basically it won't slow down your fast ass typing or mess with your gaming.
 
