@@ -1,0 +1,24 @@
+{
+    "mouse": {
+        "enabled": true,
+        "sounds_dir": "sounds/mouse",
+        "sounds": {
+            "left_down": "ClickDown.flac",
+            "left_up": "ClickUp.flac",
+            "right_down": "ClickDown2.flac",
+            "right_up": "ClickUp2.flac"
+        }
+    },
+    "keyboard": {
+        "enabled": true,
+        "sounds_dir": "sounds/keyboard",
+        "random_sounds": true,
+        "totally_random_keypresses": false,
+        "disable_repeat": false,
+        "no_repeat_keys": ["space", "enter", "lshift", "rshift", "lalt", "ralt", "w", "a", "s", "d"]
+    },
+    "audio": {
+        "async_playback": true,
+        "max_concurrent_sounds": 32
+    }
+}
