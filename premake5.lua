@@ -3,7 +3,6 @@ workspace "ClickSounds"
     platforms { "x64" }
     
     -- Force forward slashes
-    location "."
     targetdir "bin/%{cfg.buildcfg}"
     objdir "obj/%{cfg.platform}/%{cfg.buildcfg}"
     

@@ -1,3 +1,8 @@
+#ifdef PLATFORM_WINDOWS
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 #include "audio_player.h"
 #include "config.h"
 
@@ -8,11 +13,6 @@
 #include <chrono>
 #include <random>
 #include <iostream>
-
-#ifdef PLATFORM_WINDOWS
-#define NOMINMAX
-#include <windows.h>
-#endif
 
 std::unique_ptr<AudioPlayer> AudioPlayer::create() {
     return std::make_unique<MiniaudioPlayer>();
