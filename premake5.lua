@@ -30,16 +30,15 @@ project "ClickSounds"
     
     filter "system:windows"
         postbuildcommands {
-            'xcopy /Y /E "%{wks.location}\\config.json" "%{cfg.targetdir}"',
-            'xcopy /Y /E "%{wks.location}\\sounds" "%{cfg.targetdir}\\sounds"'
+            'copy /Y "%{wks.location}\\config.json" "%{cfg.targetdir}\\"',
+            'xcopy /Y /E /I "%{wks.location}\\sounds" "%{cfg.targetdir}\\sounds\\"'
         }
 
     filter "system:not windows"
         postbuildcommands {
-            'cp %{wks.location}/config.json %{cfg.targetdir}',
+            'cp %{wks.location}/config.json %{cfg.targetdir}/',
             'cp -r %{wks.location}/sounds %{cfg.targetdir}/sounds'
         }
-
     
     filter "system:windows"
         links { "user32" }
