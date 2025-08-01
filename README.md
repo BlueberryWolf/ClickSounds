@@ -63,14 +63,14 @@ The `config.json` file controls all behavior. Changes are applied instantly via 
 
 ```json
 "mouse": {
-    "enabled": true,                    // Enable/disable all mouse sounds
-    "sounds_dir": "sounds/mouse",       // Directory containing mouse sound files
-    "enable_scroll_wheel": false,       // Enable sounds for scroll wheel
-    "enable_side_buttons": true,        // Enable sounds for X1/X2 buttons
-    "enable_fade_out": false,           // Fade out button down sounds on release
-    "fade_out_duration_ms": 50,         // Fade out duration in milliseconds
-    "scroll_wheel_debounce_ms": 20,     // Minimum time between scroll sounds
-    "volume": 0.5,                      // Mouse volume (0.0 to 1.0)
+    "enabled": true,                        // Enable/disable all mouse sounds
+    "sounds_dir": "sounds/mouse",           // Directory containing mouse sound files
+    "enable_scroll_wheel": false,           // Enable sounds for scroll wheel
+    "enable_side_buttons": true,            // Enable sounds for X1/X2 buttons
+    "enable_fade_out": false,               // Fade out button down sounds on release
+    "fade_out_duration_ms": 50,             // Fade out duration in milliseconds
+    "scroll_wheel_debounce_ms": 20,         // Minimum time between scroll sounds
+    "volume": 0.5,                          // Mouse volume (0.0 to 1.0)
     "sounds": {
         "left_down": "ClickDown.flac",      // Left button press
         "left_up": "ClickUp.flac",          // Left button release
@@ -124,28 +124,28 @@ The `config.json` file controls all behavior. Changes are applied instantly via 
 
 ```json
 "audio": {
-    "async_playback": true,             // Use asynchronous audio playback
-    "max_concurrent_sounds": 32,        // Maximum simultaneous sounds
+    "async_playback": true,              // Use asynchronous audio playback
+    "max_concurrent_sounds": 32,         // Maximum simultaneous sounds
     "effects": {
         // Reverb Effect
-        "enable_reverb": false,         // Enable reverb effect
-        "reverb_wetness": 0.15,         // Reverb mix (0.0 = dry, 1.0 = wet)
-        "reverb_room_size": 0.3,        // Room size (0.0 = small, 1.0 = large)
-        "reverb_decay_time": 1.0,       // Decay time in seconds
-        "reverb_damping": 0.45,         // High frequency damping
-        "reverb_width": 1.0,            // Stereo width
+        "enable_reverb": false,          // Enable reverb effect
+        "reverb_wetness": 0.15,          // Reverb mix (0.0 = dry, 1.0 = wet)
+        "reverb_room_size": 0.3,         // Room size (0.0 = small, 1.0 = large)
+        "reverb_decay_time": 1.0,        // Decay time in seconds
+        "reverb_damping": 0.45,          // High frequency damping
+        "reverb_width": 1.0,             // Stereo width
         
         // Echo Effect
-        "enable_echo": false,           // Enable echo effect
-        "echo_delay": 0.2,              // Echo delay in seconds
-        "echo_decay": 0.3,              // Echo volume decay (0.0-1.0)
-        "echo_taps": 2,                 // Number of echo repetitions
+        "enable_echo": false,            // Enable echo effect
+        "echo_delay": 0.2,               // Echo delay in seconds
+        "echo_decay": 0.3,               // Echo volume decay (0.0-1.0)
+        "echo_taps": 2,                  // Number of echo repetitions
         
         // 3D Spatial Audio
-        "enable_spatializer": false,    // Enable 3D spatial positioning
+        "enable_spatializer": false,     // Enable 3D spatial positioning
         "random_spatial_position": true, // Randomize position for each sound
-        "spatial_spread": 3.0,          // Width of the spatial field
-        "listener_distance": 1.5        // Distance from listener to sound field
+        "spatial_spread": 3.0,           // Width of the spatial field
+        "listener_distance": 1.5         // Distance from listener to sound field
     }
 }
 ```
@@ -219,15 +219,7 @@ Currently Windows-only due to the input monitoring implementation. Linux support
 
 ## Performance
 
-<<<<<<< HEAD
 This thing is actually fast (unlike the older AHK script by [@Camera4040](https://github.com/camera4040)). Uses Windows low-level hooks for input monitoring (no polling nonsense) and async audio playback so sounds don't block your typing. It is configured by default to handle 32 concurrent sounds without breaking a sweat.
-=======
-This application is designed to be lightweight and responsive:
-- Uses Windows low-level hooks (no polling)
-- Async audio playback prevents input lag
-- Configurable concurrent sound limits (default: 32)
-- Minimal CPU usage even during intensive typing/gaming
->>>>>>> d807eff (big changes!! hot reloading, effects, idk)
 
 Won't interfere with your gaming performance or fast typing.
 
@@ -237,8 +229,4 @@ Because mechanical keyboards sound cool and make you feel productive, so now you
 
 ## License
 
-<<<<<<< HEAD
 Do whatever you want with it. If it breaks your computer that's on you lmao
-=======
-Public domain. Do literally whatever you want with it. If it breaks your computer that's on you lmao
->>>>>>> d807eff (big changes!! hot reloading, effects, idk)
