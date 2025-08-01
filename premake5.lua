@@ -34,6 +34,7 @@ project "ClickSounds"
     }
     
     filter "system:windows"
+        links { "user32" }
         defines { "PLATFORM_WINDOWS" }
     
     filter "system:linux"
