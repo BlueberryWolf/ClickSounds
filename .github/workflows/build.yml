@@ -35,69 +35,30 @@ jobs:
     - name: Verify build output
       run: |
         if (Test-Path "bin\Release\ClickSounds.exe") {
-          Write-Host "✅ Build successful - ClickSounds.exe found"
+          Write-Host "✅ MSVC build successful - ClickSounds.exe found"
           Get-ChildItem "bin\Release" -Recurse
         } else {
-          Write-Host "❌ Build failed - ClickSounds.exe not found"
+          Write-Host "❌ MSVC build failed - ClickSounds.exe not found"
           exit 1
         }
-        
-    - name: Create release package
+
+    - name: Package build
+      shell: pwsh
       run: |
-        # Create release directory
-        New-Item -ItemType Directory -Path "release" -Force
-        
-        # Copy executable
-        Copy-Item "bin\Release\ClickSounds.exe" "release\"
-        
-        # Copy config file
-        Copy-Item "config.json" "release\"
-        
-        # Copy sounds directory
-        Copy-Item "sounds" "release\sounds" -Recurse
-        
-        # Copy license and readme
-        Copy-Item "LICENSE" "release\" -ErrorAction SilentlyContinue
-        Copy-Item "README.md" "release\"
-        
-        # Create kill script for convenience
-        @"
-        @echo off
-        taskkill /f /im ClickSounds.exe 2>nul
-        if %errorlevel% equ 0 (
-            echo ClickSounds stopped successfully
-        ) else (
-            echo ClickSounds was not running
-        )
-        pause
-        "@ | Out-File -FilePath "release\KillClickSounds.bat" -Encoding ascii
-        
-        # Show what we packaged
-        Write-Host "Release package contents:"
-        Get-ChildItem "release" -Recurse
-        
+        New-Item -ItemType Directory -Path release -Force
+        Copy-Item "bin\Release\ClickSounds.exe" release\
+        Copy-Item "config.json" release\
+        Copy-Item "sounds" release\sounds -Recurse
+        Copy-Item "LICENSE" release\ -ErrorAction SilentlyContinue
+        Copy-Item "README.md" release\
+        Copy-Item "KillClickSounds.bat" release\
+
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ClickSounds-Windows-x64
         path: release/
         retention-days: 30
-        
-    - name: Create release archive
-      if: github.event_name == 'release'
-      run: |
-        Compress-Archive -Path "release\*" -DestinationPath "ClickSounds-Windows-x64.zip"
-        
-    - name: Upload release asset
-      if: github.event_name == 'release'
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./ClickSounds-Windows-x64.zip
-        asset_name: ClickSounds-Windows-x64.zip
-        asset_content_type: application/zip
 
   build-windows-clang:
     runs-on: windows-latest
@@ -138,9 +99,20 @@ jobs:
           exit 1
         }
         
+    - name: Package build
+      shell: pwsh
+      run: |
+        New-Item -ItemType Directory -Path release -Force
+        Copy-Item "bin\Release\ClickSounds.exe" release\
+        Copy-Item "config.json" release\
+        Copy-Item "sounds" release\sounds -Recurse
+        Copy-Item "LICENSE" release\ -ErrorAction SilentlyContinue
+        Copy-Item "README.md" release\
+        Copy-Item "KillClickSounds.bat" release\
+
     - name: Upload Clang build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: ClickSounds-Windows-x64-Clang
-        path: bin/Release/
+        path: release/
         retention-days: 30

@@ -28,12 +28,11 @@ project "ClickSounds"
         "third_party"
     }
     
-    filter "system:windows"
+    filter { "system:windows", "action:gmake" }
         postbuildcommands {
-            '{COPY} %{wks.location}/config.json %{cfg.targetdir}',
-            '{COPYDIR} %{wks.location}/sounds %{cfg.targetdir}/sounds'
+            'cp %{wks.location}/config.json %{cfg.targetdir}/',
+            'cp -r %{wks.location}/sounds %{cfg.targetdir}/sounds'
         }
-
 
     filter "system:not windows"
         postbuildcommands {
