@@ -2,6 +2,11 @@ workspace "ClickSounds"
     configurations { "Debug", "Release" }
     platforms { "x64" }
     
+    -- Force forward slashes
+    location "build"
+    targetdir "bin/%{cfg.buildcfg}"
+    objdir "obj/%{cfg.platform}/%{cfg.buildcfg}"
+    
 project "ClickSounds"
     kind "WindowedApp"
     language "C++"
