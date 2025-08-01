@@ -45,6 +45,7 @@ Third-Party Software
 --------------------
 This project includes libraries under the MIT License:
 - nlohmann/json
-- miniaudio (MIT + Unlicense)
+- ThomasMonkman/filewatch
+- mackron/miniaudio (MIT + Unlicense)
 
 See LICENSES/ for their license texts.
